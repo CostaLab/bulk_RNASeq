@@ -29,7 +29,7 @@ $name = 'rnaseq1_out'
 $cpu = 12
 $mem = '4.0GB'
 
-#nextflow run /home/izkf/nextflow/nf-core/rnaseq --reads '/hpcwork/izkf/projects/.../*_R{1,2}.fastq.gz' --fc_group_features gene_id  --fc_extra_attributes gene_name  --fc_count_type transcript --pseudo_aligner salmon --star_index /hpcwork/izkf/projects/.../gencodeM24_index --fasta /hpcwork/izkf/projects/.../M24.GRCm38.p6.genome.fa  --gtf /hpcwork/izkf/projects/.../gencode.vM24.annotation.gtf --saveReference --saveUnaligned --gencode --removeRiboRNA --outdir /hpcwork/izkf/projects/rnaseq_tur-kra/output  --name 'Turgay-BulkRNA0002' --max_cpus 12 --max_memory '4.GB' --resume
+#nextflow run /home/izkf/nextflow/nf-core/rnaseq --reads '/hpcwork/izkf/projects/.../*_R{1,2}.fastq.gz' --fc_group_features gene_id  --fc_extra_attributes gene_name  --fc_count_type transcript --pseudo_aligner salmon --star_index /hpcwork/izkf/projects/.../gencodeM24_index --fasta /hpcwork/izkf/projects/.../M24.GRCm38.p6.genome.fa  --gtf /hpcwork/izkf/projects/.../gencode.vM24.annotation.gtf --saveReference --saveUnaligned --gencode --removeRiboRNA --outdir /hpcwork/izkf/projects/rnaseq_tur-kra/output  --name 'RUN1' --max_cpus 12 --max_memory '4.GB' --resume
 
 nextflow run /home/izkf/nextflow/nf-core/rnaseq --reads $reads  --fc_group_features gene_id  --fc_extra_attributes gene_name  --fc_count_type transcript --pseudo_aligner salmon --star_index $ref_index  --fasta $ref_fa  --gtf $ref_gtf --saveReference --saveUnaligned --gencode --removeRiboRNA --outdir $nf_out  --name $name --max_cpus $cpu  --max_memory $mem  --resume
 
