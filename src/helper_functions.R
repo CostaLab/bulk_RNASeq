@@ -141,7 +141,8 @@ limma_pipeline <- function(
   removeIntercept=FALSE,
   include_unadj_pval=FALSE,
   limma_trend=FALSE,
-  limma_voom=FALSE
+  limma_voom=FALSE,
+  limma_voom_weight_samples=FALSE
 ){
   # features as rows, samples as columns
 
@@ -162,6 +163,10 @@ limma_pipeline <- function(
     # limma-trend was just as good
     if(limma_voom){
       vv = limma::voom(expression_matrix,design,plot=TRUE)
+      fit <- limma::lmFit(vv,design)
+      limma_trend=FALSE # if using limma-voom don't use limma-trend
+    }else if(limma_voom_weight_samples){
+      vv = limma::voomWithQualityWeights(expression_matrix,design,normalization="none",plot=TRUE)
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
     }else{
@@ -205,9 +210,9 @@ limma_pipeline <- function(
     # thresholding are usually recommended
     # to use treat and topTreat instead"
     aux <- limma::topTable(
-      fit2, 
-      coef=i, 
-      number="Inf", 
+      fit2,
+      coef=i,
+      number="Inf",
       adjust.method="BH",
       sort.by="none"
     )
@@ -219,11 +224,11 @@ limma_pipeline <- function(
 
     limma_res[[contrast_name_fc]]<-aux[,"logFC"]
     limma_res[[contrast_name_pval]]<-aux[,"adj.P.Val"]
-    
-    # -1, 0 or 1 depending on whether each t-statistic is classified as 
+
+    # -1, 0 or 1 depending on whether each t-statistic is classified as
     # significantly negative, not significant or significantly positive, respectively
     limma_res[[contrast_name_de]]<-results[,i]
-    
+
     # ID col only appears in the case of duplicated rownames in fit
     if("ID" %in% colnames(aux)){limma_res[["Gene_Symbol"]] = aux[,"ID"]}
     else{limma_res[["Gene_Symbol"]] = rownames(aux)}
@@ -273,14 +278,14 @@ makeVolcanoPlot <- function(
   gs_col <- grep("Gene_Symbol",colnames(limma_res),value=TRUE)
   de_col <- grep("_DE",colnames(limma_res),value=TRUE)
   facet_col = NULL
-  
+
   if(length(fc_col)>1){
-    
+
     fc_col = "FC"
     pval_col = "Pval"
     de_col = "DE"
     facet_col = "VS"
-    
+
     molten_pval = reshape2::melt(
     limma_res,id.vars = c("Gene_Symbol"),
     measure.vars = grep("_Pval$",colnames(limma_res)),
@@ -290,19 +295,19 @@ makeVolcanoPlot <- function(
       limma_res,id.vars = c("Gene_Symbol"),
       measure.vars = grep("_FC$",colnames(limma_res)),
       value.name=fc_col
-    )  
+    )
     molten_de = reshape2::melt(
       limma_res,id.vars = c("Gene_Symbol"),
       measure.vars = grep("_DE$",colnames(limma_res)),
       value.name=de_col
-    )  
+    )
     limma_res = dplyr::bind_cols(molten_pval,molten_fc,molten_de)
-    limma_res[,facet_col] = gsub("_Pval$","",limma_res$variable)  
-    
+    limma_res[,facet_col] = gsub("_Pval$","",limma_res$variable)
+
   }
-  
-  limma_res[,"minusLog10pval"]<- -log10(limma_res[,pval_col])  
-  
+
+  limma_res[,"minusLog10pval"]<- -log10(limma_res[,pval_col])
+
   xlim_max <- max(abs(limma_res[,fc_col]))+0.8
   ylim_max <- ifelse(
     max(abs(limma_res[,"minusLog10pval"]))<(-log10(0.05)),
@@ -358,9 +363,9 @@ makeVolcanoPlot <- function(
     axis.line = element_line(),
     panel.border = element_blank()
   )
-  
+
   if(!is.null(facet_col)) volc_plt=volc_plt+facet_grid(VS~.)
-  
+
   save_different_plot_format(
     plt=volc_plt,plot_dir=plot_dir,
     create_plot_subdir=create_plot_subdir,save_device="ggplot",
@@ -379,7 +384,7 @@ save_different_plot_format = function(
 ){
   if(!is.null(plot_dir) & !is.null(plt)){
     save_device = match.arg(save_device)
-  
+
     f_name = paste0(type_name,"-",name_tag)
 
     for(fmt in formats){
@@ -407,9 +412,9 @@ makePCA <- function(
   data_matrix, # matrix to run the pca on
   label_factor, # label for each sample
   color_palette="lancet", # color palette to be used
-  addEllipses=FALSE, 
+  addEllipses=FALSE,
   ellipse_level=0.95,
-  title="PCA", 
+  title="PCA",
   subtitle=NULL,
   colour_label=waiver(),
   name_tag=NULL,
@@ -435,7 +440,7 @@ makePCA <- function(
       habillage=label_factor,
       pointshape=19,
       mean.point=FALSE,
-      addEllipses=addEllipses, 
+      addEllipses=addEllipses,
       ellipse.level=ellipse_level
     )
   }else{
@@ -445,7 +450,7 @@ makePCA <- function(
       col.ind=label_factor,
       pointshape=19,
       mean.point=FALSE,
-      addEllipses=addEllipses, 
+      addEllipses=addEllipses,
       ellipse.level=ellipse_level
     )
   }
@@ -475,7 +480,7 @@ pltFCHeatmapWrapper <- function(
   create_plot_subdir=TRUE,
   row_fontsize=5,
   plot_width=12,
-  plot_height=20  
+  plot_height=20
 )
 {
   suppressPackageStartupMessages(library(ComplexHeatmap))
@@ -512,14 +517,14 @@ pltFCHeatmapWrapper <- function(
     row_names_gp=gpar(col = ifelse(rownames(hm_data)%in%genes_of_int,"red","black"),fontsize = row_fontsize),
     heatmap_width=unit(plot_width, "cm")
   )
-  
+
   save_different_plot_format(
     plt=hmplt,plot_dir=plot_dir,
     create_plot_subdir=create_plot_subdir,save_device="complexheatmap",
     type_name="fc_heatmap",name_tag=name_tag,
     units="cm",width=plot_width,height=plot_height
   )
-  
+
   return(hmplt)
 
 }
@@ -542,17 +547,17 @@ run_consensus_GSA = function(
   #  lgsc$gsc$DAZARD_RESPONSE_TO_UV_SCC_DN,
   #  fc_vec
   #)
-  
+
   # library("piano")
   library("snow")
   library("snowfall")
-  
+
   tictoc::tic("Consensus GSA run")
-  
+
   assertthat::assert_that(is.matrix(fc_gene_mat))
-  
+
   lgsc = piano::loadGSC(gene_sets_fpath)
-  
+
   res = lapply(colnames(fc_gene_mat),function(col_n){
     tictoc::tic(paste0(basename(gene_sets_fpath)," ",col_n))
     fc_vec=fc_gene_mat[,col_n]
@@ -606,7 +611,7 @@ run_consensus_GSA = function(
         geneSetStat = "page",
         adjMethod="BH",gsc = lgsc,nPerm=n_perm,ncpus = n_cpus,verbose=FALSE)
     }
-    
+
     res_list = list(
       rgsa_mean,
       rgsa_median,
@@ -623,18 +628,18 @@ run_consensus_GSA = function(
     res_mat = piano::consensusHeatmap(
       resList=res_list,
       cutoff=Inf, # ensures every geneset is present
-      # only applies to the rank and not other 
+      # only applies to the rank and not other
       # stats (pval/nGenes) which are always median
-      method="mean", 
+      method="mean",
       adjusted=TRUE,
       plot=FALSE
     )
-    
+
     f_res = list(
       "consensus_res" = res_mat,
       "gsea_res" = res_list
     )
-    
+
     saveRDS(
       object = f_res,
       file = file.path(
@@ -643,12 +648,12 @@ run_consensus_GSA = function(
       ),
       compress = FALSE
     )
-    
+
     tictoc::toc()
     return(f_res)
   })
   names(res) = colnames(fc_gene_mat)
-  
+
   saveRDS(
     object = res,
     file = file.path(
@@ -657,7 +662,7 @@ run_consensus_GSA = function(
     ),
     compress = FALSE
   )
-  
+
   tictoc::toc()
   return(res)
 }
@@ -673,7 +678,7 @@ plot_consensus_heatmap_res = function(
   plot_height=10
 ){
   library("ComplexHeatmap")
-  
+
   consensus_pval_mat = as.data.frame(consensus_res$pMat[,c(1,5)])
   colnames(consensus_pval_mat) = c("distinct_dirUP","distinct_dirDOWN")
   top_consensus_pval_df = rbind(
@@ -711,7 +716,7 @@ plot_consensus_heatmap_res = function(
   hm_cs_pval_plt = ComplexHeatmap::Heatmap(
     -log10(as.matrix(top_consensus_pval_df)),
     col=circlize::colorRamp2(
-      c(0, -log10(0.05), max_pval_leg), 
+      c(0, -log10(0.05), max_pval_leg),
       c("blue", "white", "red")
     ),
     heatmap_legend_param=list(direction="horizontal"),
@@ -749,5 +754,3 @@ plot_consensus_heatmap_res = function(
     units="cm",width=plot_width,height=plot_height
   )
 }
-
-
