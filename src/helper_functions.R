@@ -137,6 +137,7 @@ limma_pipeline <- function(
   expression_matrix,
   group_labels,
   group_contrasts,
+  significance_threshold=0.05,
   reference_group_labels=NULL,
   removeIntercept=FALSE,
   include_unadj_pval=FALSE,
@@ -158,15 +159,21 @@ limma_pipeline <- function(
     design <- model.matrix(~group_labels-1) # NOTE removing intercept!
     colnames(design) <- levels(group_labels)
 
+    # TODO add possibility to filter (also plot filtered counts if this option is chosen)
+
+    # TODO add possibility to normalize (also plot normalized counts if this option is chosen)
+
     # voom was shown to have the edge when the sequencing depths
     # were very inconsistent between replicates but, otherwise,
     # limma-trend was just as good
     if(limma_voom){
       vv = limma::voom(expression_matrix,design,plot=TRUE)
+      # TODO plot tranformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
     }else if(limma_voom_weight_samples){
       vv = limma::voomWithQualityWeights(expression_matrix,design,normalization="none",plot=TRUE)
+      # TODO plot transformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
     }else{
@@ -201,7 +208,7 @@ limma_pipeline <- function(
     results <- limma::decideTests(
       fit2,
       coef=i,
-      p.value=0.05,
+      p.value=significance_threshold,
       adjust.method="BH",
       lfc=0
     )
