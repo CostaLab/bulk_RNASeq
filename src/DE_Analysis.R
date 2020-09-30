@@ -3,7 +3,7 @@ library(edgeR, quietly=TRUE)
 library(RColorBrewer)
 library(FactoMineR)
 library(optparse)
-source(helper_functions.R)  #import helper function limma_pipeline
+source("helper_functions.R")  #import helper function limma_pipeline
 
 option_list = list(
   make_option(c("-t", "--tool"), type="character", default="limma",
@@ -12,15 +12,15 @@ option_list = list(
   make_option(c("-c", "--counts"), type="character", default="", help="file containing the gene counts", metavar="character"),
   make_option(c("-d", "--data"), type="character", default="", help="file containing information about the samples", metavar="character"),
   make_option(c("-g", "--groupcolumn"), type="integer", default=1, help="number of the experment dataframe column which indicates the group"),
-  make_option(c("-o", "--output"), type="character", default="", help="directory for output files", metavar="character"),
-  make_option(c("-i", "--information"), type="character", default="",
-              help="file providing information for all considered genes (gene name or id (first column), chr, start, end, ...)", metavar="character"),
+  make_option(c("-o", "--output"), type="character", default="./", help="directory for output files", metavar="character"),
   make_option(c("-v", "--contrast"), type="character", default="",
               help="Determine the conditions which should be compared (used for building contrast matrix) - usually: treatment - wt", metavar="character"),
   make_option(c("-s", "--significance"), type="double", default=0.05,
-              help="Significance threshold for adjusted p-Value (significant DE genes are those having an adj. p-Value below this threshold)")
+              help="Significance threshold for adjusted p-Value (significant DE genes are those having an adj. p-Value below this threshold)"),
   make_option(c("-u", "--unit"), type="logical", default=FALSE, help="Determine whether to scale to unit variance when plotting the counts")
 )
+
+# TODO maybe add possibility to directly include gene information in output file later
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
