@@ -3,6 +3,7 @@ library(edgeR, quietly=TRUE)
 library(RColorBrewer)
 library(FactoMineR)
 library(optparse)
+library(sets)
 source("helper_functions.R")  #import helper function limma_pipeline
 
 option_list = list(
@@ -11,7 +12,7 @@ option_list = list(
   make_option(c("-f", "--format"), type="character", default="tsv", help="format of the input files. Choose one from: \"tsv\", \"csv\"", metavar="character"),
   make_option(c("-c", "--counts"), type="character", default="", help="file containing the gene counts", metavar="character"),
   make_option(c("-d", "--data"), type="character", default="", help="file containing information about the samples", metavar="character"),
-  make_option(c("-g", "--groupcolumn"), type="integer", default=1, help="number of the experment dataframe column which indicates the group"),
+  make_option(c("-g", "--groupcolumn"), type="integer", default=2, help="number of the experment dataframe column which indicates the group"),
   make_option(c("-o", "--output"), type="character", default="./", help="directory for output files", metavar="character"),
   make_option(c("-v", "--contrast"), type="character", default="",
               help="Determine the conditions which should be compared (used for building contrast matrix) - usually: treatment - wt", metavar="character"),
@@ -38,20 +39,18 @@ if(! opt$tool %in% valid_tools) {
   # import data
   print(">> Import data", quote=FALSE)
   if (opt$format == "tsv") {
-    count_data = read.table(opt$counts, sep="\t", row.names=1, header=None)
-    exp_data = read.table(opt$data, sep="\t", row.names=1, header=None)
-    gene_info = read.table(opt$information, sep="\t", row.names=1, header=None)
+    count_data = read.table(file=opt$counts, sep="\t", row.names=1, header=None)
+    exp_data = read.table(file=opt$data, sep="\t", row.names=1, header=None)
   }
   else {
-    count_data = read.csv(opt$counts, sep=",", row.names=1)
-    exp_data = read.csv(opt$data, sep=",", row.names=1)
-    gene_info = read.csv(opt$information, sep=",", row.names=1)
+    count_data = read.csv(file=opt$counts, sep=",", row.names=1)
+    exp_data = read.csv(file=opt$data, sep=",", row.names=1)
   }
 
   # get group labels
   labels = as.character(as.set(exp_data[,opt$groupcolumn-1]))
 
-  # plot raw counts (PCA)
+  plot raw counts (PCA)
   PCA_counts <- as.data.frame(t(count_data))  # count matrix needs to be transposed before PCA
   PCA_counts <- cbind(exp_data, PCA_counts)  # enrich counts with information about samples
   cairo_pdf(file=paste(c(opt$output, "raw_counts_PCA.pdf"), sep="", collapse=""), width=11.43, height=8.27, onefile=T)
