@@ -3,7 +3,6 @@ library(edgeR, quietly=TRUE)
 library(RColorBrewer)
 library(FactoMineR)
 library(optparse)
-library(sets)
 source("helper_functions.R")  #import helper function limma_pipeline
 
 option_list = list(
@@ -48,7 +47,7 @@ if(! opt$tool %in% valid_tools) {
   }
 
   # get group labels
-  labels = as.character(as.set(exp_data[,opt$groupcolumn-1]))
+  labels = as.character(exp_data[,opt$groupcolumn-1])
 
   plot raw counts (PCA)
   PCA_counts <- as.data.frame(t(count_data))  # count matrix needs to be transposed before PCA
