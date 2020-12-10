@@ -141,6 +141,8 @@ limma_pipeline <- function(
   reference_group_labels=NULL,
   removeIntercept=FALSE,
   include_unadj_pval=FALSE,
+  filter=FALSE,
+  normalize="none",
   limma_trend=FALSE,
   limma_voom=FALSE,
   limma_voom_weight_samples=FALSE
@@ -155,14 +157,38 @@ limma_pipeline <- function(
   }
 
   # TODO should probably always remove intercept...
+  print(">>> Create design matrix", quote=FALSE)
   if(removeIntercept){
+    # build design matrix
     design <- model.matrix(~group_labels-1) # NOTE removing intercept!
     colnames(design) <- levels(group_labels)
+    skip_I <- 0
+  } else {
+    design <- model.matrix(~group_labels)
+    colnames(design) <- c(colnames(design)[1],levels(group_labels)[-1])
+    skip_I <- 1
+  }
 
-    # TODO add possibility to filter (also plot filtered counts if this option is chosen)
+  # create DGEList object
+  dge <- DGEList(counts=expression_matrix)
 
-    # TODO add possibility to normalize (also plot normalized counts if this option is chosen)
+  # filter lowly expressed genes if this is specified
+  if(filter){
+    print(">>> Filter out lowly expressed genes", quote=FALSE)
+    keep <- filterByExpr(dge, design)
+    dge <- dge[keep,,keep.lib.sizes=FALSE]
+    # TODO PCA plot after filtering
+  }
 
+  # TODO add possibility to normalize (also plot normalized counts if this option is chosen)
+  print(">>> Normalize Counts", quote=FALSE)
+  dge <- calcNormFactors(dge, method=normalize)
+  if(normalize!="none"){
+    # TODO PCA plot after normalization
+  }
+
+  print(">>> Fit model", quote=FALSE)
+  if(removeIntercept){
     # voom was shown to have the edge when the sequencing depths
     # were very inconsistent between replicates but, otherwise,
     # limma-trend was just as good
@@ -171,12 +197,12 @@ limma_pipeline <- function(
       # TODO plot tranformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
-    }else if(limma_voom_weight_samples){
+    } else if (limma_voom_weight_samples){
       vv = limma::voomWithQualityWeights(expression_matrix,design,normalization="none",plot=TRUE)
       # TODO plot transformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
-    }else{
+    } else {
       fit <- limma::lmFit(expression_matrix,design)
     }
     contrast_matrix <- limma::makeContrasts(
@@ -188,17 +214,12 @@ limma_pipeline <- function(
     fit2 <- limma::eBayes(fit2,trend=limma_trend)
     limma::plotSA(fit2, main="Final model: Mean-variance trend")
 
-    skip_I <- 0
-  }else{
-    design <- model.matrix(~group_labels)
-    colnames(design) <- c(colnames(design)[1],levels(group_labels)[-1])
-
+  } else {
     fit <- limma::lmFit(expression_matrix,design)
     fit2 <- limma::eBayes(fit,trend=limma_trend)
-
-    skip_I <- 1
   }
 
+  print(">>> Evaluate results", quote=FALSE)
   limma_res <- list()
   for(i in seq_len(ncol(fit2$coefficients)-skip_I)){
 
@@ -237,8 +258,11 @@ limma_pipeline <- function(
     limma_res[[contrast_name_de]]<-results[,i]
 
     # ID col only appears in the case of duplicated rownames in fit
-    if("ID" %in% colnames(aux)){limma_res[["Gene_Symbol"]] = aux[,"ID"]}
-    else{limma_res[["Gene_Symbol"]] = rownames(aux)}
+    if("ID" %in% colnames(aux)){
+      limma_res[["Gene_Symbol"]] = aux[,"ID"]
+    } else {
+      limma_res[["Gene_Symbol"]] = rownames(aux)
+    }
 
     if(include_unadj_pval){
       contrast_name_unadjpval <- paste0(contrast_name,"_unadjPval")
