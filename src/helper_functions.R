@@ -283,13 +283,14 @@ limma_pipeline <- function(
 
 makeVolcanoPlot <- function(
   limma_res,
-  highlight_genes=NULL,
   name_tag,
+  highlight_genes=NULL,
   geneset_name=NULL,
   plot_dir=NULL,
   hg_text=TRUE,
   plt_subtitle="Text highlights DE genes in geneset with FC>1",
-  create_plot_subdir=TRUE
+  create_plot_subdir=TRUE,
+  formats=c("png","pdf","tiff")
 ){
   # Makes volcano plot from results obtained from my limma_pipeline function
   # note that volcanoplot from limma uses normal pvalue while im using
@@ -300,9 +301,6 @@ makeVolcanoPlot <- function(
 
   suppressPackageStartupMessages(library(ggrepel))
   suppressPackageStartupMessages(library(ggplot2))
-
-  #limma_res<-jak2cml_limma_res
-  #highlight_genes<-gene_subset
 
   fc_col <- grep("_FC",colnames(limma_res),value=TRUE)
   pval_col <- grep("_Pval",colnames(limma_res),value=TRUE)
@@ -337,7 +335,7 @@ makeVolcanoPlot <- function(
 
   }
 
-  limma_res[,"minusLog10pval"]<- -log10(limma_res[,pval_col])
+  limma_res[,"minusLog10pval"] <- -log10(limma_res[,pval_col])
 
   xlim_max <- max(abs(limma_res[,fc_col]))+0.8
   ylim_max <- ifelse(
@@ -365,7 +363,10 @@ makeVolcanoPlot <- function(
   if(hg_text){
     volc_plt <-volc_plt + geom_text_repel(
       # genes in HL gene list that are differentially expressed with a FC > 1
-      data = subset(limma_res,limma_res[,"Gene_Symbol"] %in% highlight_genes & limma_res[,de_col]!=0 & abs(limma_res[,fc_col])>1),
+      data = subset(
+        limma_res,
+        limma_res[,"Gene_Symbol"] %in% highlight_genes & limma_res[,de_col]!=0 & abs(limma_res[,fc_col])>1
+      ),
       segment.size = 0.5,
       segment.color = "darkred",
       direction = "both",
@@ -374,9 +375,32 @@ makeVolcanoPlot <- function(
       ylim=c(1.5,NA),
       max.iter=5000,force=1.5
     )
+    if(is.null(highlight_genes)){
+      # if highlight text but no highlighted genes, then highlight DE + abs(FC)>1 genes
+      volc_plt <- volc_plt +
+        geom_point(
+          data = subset(limma_res, limma_res[,de_col]!=0 & abs(limma_res[,fc_col])>1),
+          color="red"
+        )+
+        geom_text_repel(
+          data = subset(limma_res, limma_res[,de_col]!=0 & abs(limma_res[,fc_col])>1),
+          segment.size = 0.5,
+          segment.color = "darkred",
+          direction = "both",
+          size = max(2,(8 * (1/length(which(limma_res[,de_col]!=0 & abs(limma_res[,fc_col])>1))))),
+          box.padding = .5,
+          max.iter=5000,
+          force=1.
+        )
+    }
   }
   volc_plt = volc_plt +
-  geom_label_repel(data=data.frame(lab="P-value = 0.05",pval=-log10(0.05),xpos=xlim_max),mapping=aes(label=lab,x=xpos,y=pval), color = "grey60",alpha=0.8)+
+  geom_label_repel(
+    data=data.frame(lab="P-value = 0.05",pval=-log10(0.05),xpos=xlim_max),
+    mapping=aes(label=lab,x=xpos,y=pval),
+    color = "grey60",
+    alpha=0.8
+  )+
   labs(
     title=plt_title,
     subtitle=plt_subtitle,
@@ -400,7 +424,7 @@ makeVolcanoPlot <- function(
   save_different_plot_format(
     plt=volc_plt,plot_dir=plot_dir,
     create_plot_subdir=create_plot_subdir,save_device="ggplot",
-    type_name="volcano_plot",name_tag=name_tag,
+    type_name="volcano_plot",name_tag=name_tag,formats=formats,
     units="cm",width=20,height=20
   )
 
