@@ -809,3 +809,88 @@ plot_consensus_heatmap_res = function(
     units="cm",width=plot_width,height=plot_height
   )
 }
+
+plot_limma_topGenes_tbl = function(
+  limma_topTable,
+  tbl_name,
+  comparison,
+  output_dir,
+  width_px="100%",
+  sort_by=c("Pval","FC"),
+  n_top=10
+){
+
+  suppressPackageStartupMessages(library(formattable))
+  #webshot::install_phantomjs()
+
+  export_formattable <- function(
+    f_table,
+    file,
+    width = "100%",
+    height = NULL,
+    background = "white",
+    delay = 0.2){
+      # from https://github.com/renkun-ken/formattable/issues/26
+      w <- formattable::as.htmlwidget(f_table, width = width, height = height)
+      path <- htmltools::html_print(w, background = background, viewer = NULL)
+      url <- paste0("file:///", gsub("\\\\", "/", normalizePath(path)))
+      webshot::webshot(
+        url,
+        file = file,
+        selector = ".formattable_widget",
+        delay = delay
+      )
+  }
+
+  customGreen = "#71CA97"
+  customRed = "#ff7f7f"
+
+  # Select desired data
+  limma_topTable = limma_topTable %>%
+    select(contains(comparison),"Gene_Symbol") %>%
+    arrange_at(vars(ends_with(sort_by)))%>%head(n_top)
+
+  # Columns in proper order
+  limma_topTable = limma_topTable %>%
+    select("Gene_Symbol",contains("_DE"),contains("_FC"),contains("_Pval"))
+
+  # Proper column names for table
+  colnames(limma_topTable) = c(
+    "Gene Symbol",
+    "DE direction",
+    "Log2 Fold-Change",
+    "Adjusted P-value"
+  )
+
+  format_list = list(
+    "Gene Symbol" = formattable::formatter("span", style = ~ formattable::style(color = "grey",font.weight = "bold")),
+    "DE direction"=formattable::formatter("span", style = x ~ style(color = ifelse(x > 0, "red", ifelse(x < 0, "blue", "black")))),
+    "Log2 Fold-Change"=formattable::color_bar("lightgrey",fun=function(x){formattable::proportion(abs(x))}),
+    "Adjusted P-value"= formattable::color_tile(customGreen, customRed)
+  )
+
+  # theres a bug with this viz where the minus appears on the right for negative numbers
+  # making it abs to avoid this, direction can be seen by DE dir column anyway
+  limma_topTable[,"Log2 Fold-Change"] = format(
+    abs(limma_topTable[,"Log2 Fold-Change"]),
+    digits=2,
+    nsmall=2
+  )
+
+  ft_tbl = formattable::formattable(
+    limma_topTable,
+    align =c("l","r","r","r"),
+    format_list
+  )
+  rownames(ft_tbl) = NULL
+
+  export_formattable(
+    f_table=ft_tbl,
+    file=file.path(
+      output_dir,
+      paste0("limma_topGenes_table-",comparison,"-",tbl_name,".png")
+    ),
+    width=width_px
+  )
+}
+
