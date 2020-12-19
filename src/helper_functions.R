@@ -255,7 +255,7 @@ limma_pipeline <- function(
 
     # -1, 0 or 1 depending on whether each t-statistic is classified as
     # significantly negative, not significant or significantly positive, respectively
-    limma_res[[contrast_name_de]]<-results[,i]
+    limma_res[[contrast_name_de]] <- results@.Data[,i]
 
     # ID col only appears in the case of duplicated rownames in fit
     if("ID" %in% colnames(aux)){
