@@ -62,34 +62,31 @@ plot(res.PCA, cex=0.9, habillage=opt$groupcolumn, col.hab=c("black","blue"), inv
 dump <- dev.off()
 
 # call tool pipeline
-# limma
 if (opt$tool=="limma"){
+  # limma
   print(">> Start analysis with limma", quote=FALSE)
   result = limma_pipeline(expression_matrix = count_data, group_labels = labels, group_contrasts = opt$vs, significance_threshold=opt$significance, reference_group_labels=NULL,
-    removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE)
-}
-#limma trend
-else if (opt$tool=="limma_trend"){
+    removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE, output_dir = opt$output)
+} else if (opt$tool=="limma_trend"){
+  #limma trend
   print(">> Start analysis with limma trend", quote=FALSE)
   result = limma_pipeline(expression_matrix = count_data, group_labels = labels, group_contrasts = opt$vs, significance_threshold=opt$significance, reference_group_labels=NULL,
-    removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE)
-}
-# limma voom
-else if (opt$tool=="limma_voom"){
+    removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE, output_dir = opt$output)
+} else if (opt$tool=="limma_voom"){
+  # limma voom
   print(">> Start analysis with limma voom", quote=FALSE)
   sample_weights = askYesNo(msg="Do you want to apply sample specific weights?")
   if (sample_weights){
     result = limma_pipeline(expression_matrix = count_data, group_labels = labels , group_contrasts = opt$vs, significance_threshold=opt$significance, reference_group_labels=NULL,
-      removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE)
-  }
-  else {
+      removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE, output_dir = opt$output)
+  } else {
     result = limma_pipeline(expression_matrix = count_data, group_labels = labels, group_contrasts = opt$vs, significance_threshold=opt$significance, reference_group_labels=NULL,
-      removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE)
+      removeIntercept=TRUE, filter=opt$fi, normalize=opt$normalize, include_unadj_pval=FALSE, limma_trend=FALSE, limma_voom=FALSE, limma_voom_weight_samples=FALSE, output_dir = opt$output)
   }
-}
-# DESeq2
-else {
+}else {
+  # DESeq2
   print(">> Start analysis with DESeq2", quote=FALSE)
+  stop("DESeq2 part of the pipeline has not been implemented yet", quote=FALSE)
   # TODO put DESeq2 pipeline call here
 }
 

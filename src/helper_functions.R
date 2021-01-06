@@ -145,7 +145,8 @@ limma_pipeline <- function(
   normalize="none",
   limma_trend=FALSE,
   limma_voom=FALSE,
-  limma_voom_weight_samples=FALSE
+  limma_voom_weight_samples=FALSE,
+  output_dir="./"
 ){
   # features as rows, samples as columns
 
@@ -176,6 +177,8 @@ limma_pipeline <- function(
   if(filter){
     print(">>> Filter out lowly expressed genes", quote=FALSE)
     keep <- filterByExpr(dge, design)
+    print(paste(c(">>>> Number of genes filtered out: ", length(keep[keep == FALSE])), sep="", collapse=""), quote=FALSE)
+    print(paste(c(">>>> Number of genes still considerd: ", length(keep[keep == TRUE])), sep="", collapse=""), quote=FALSE)
     dge <- dge[keep,,keep.lib.sizes=FALSE]
     # TODO PCA plot after filtering
   }
@@ -212,7 +215,10 @@ limma_pipeline <- function(
 
     fit2 <- limma::contrasts.fit(fit, contrast_matrix)
     fit2 <- limma::eBayes(fit2,trend=limma_trend)
+    
+    cairo_pdf(file=paste(c(output_dir, "Model_plots.pdf"), sep="", collapse=""), width=11.43, height=8.27, onefile=T)
     limma::plotSA(fit2, main="Final model: Mean-variance trend")
+    dump <- dev.off()
 
   } else {
     fit <- limma::lmFit(expression_matrix,design)
@@ -224,7 +230,6 @@ limma_pipeline <- function(
   for(i in seq_len(ncol(fit2$coefficients)-skip_I)){
 
     i <- i + skip_I
-
     # NOTE not applying FC thresholding, not filtering out any genes/probes
     results <- limma::decideTests(
       fit2,
@@ -249,7 +254,7 @@ limma_pipeline <- function(
     contrast_name_fc <- paste0(contrast_name,"_FC")
     contrast_name_pval <- paste0(contrast_name,"_Pval")
     contrast_name_de <- paste0(contrast_name,"_DE")
-
+    
     limma_res[[contrast_name_fc]]<-aux[,"logFC"]
     limma_res[[contrast_name_pval]]<-aux[,"adj.P.Val"]
 
@@ -263,7 +268,7 @@ limma_pipeline <- function(
     } else {
       limma_res[["Gene_Symbol"]] = rownames(aux)
     }
-
+    
     if(include_unadj_pval){
       contrast_name_unadjpval <- paste0(contrast_name,"_unadjPval")
       limma_res[[contrast_name_unadjpval]]<-aux[,"P.Value"]
