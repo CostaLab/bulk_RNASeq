@@ -1,0 +1,10 @@
+^Makefile$
+^testdata$
+^src$
+^update_version\.sh$
+^setup_proj\.R$
+^README\.html$
+^init\.r$
+^README\.Rmd$
+^LICENSE\.md$
+^bulkpipeline\.Rproj$
