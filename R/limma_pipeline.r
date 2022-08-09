@@ -1,4 +1,20 @@
-
+#' limma pipeline function
+#'
+#' @param expression_matrix A matrix with features as rows and samples as columns
+#' @param group_labels TODO
+#' @param group_contrasts TODO
+#' @param significance_threshold TODO
+#' @param reference_group_labels TODO
+#' @param removeIntercept TODO
+#' @param include_unadj_pval TODO
+#' @param filter TODO
+#' @param normalize TODO
+#' @param limma_trend TODO
+#' @param limma_voom TODO
+#' @param limma_voom_weight_samples TODO
+#' @param output_dir TODO
+#'
+#' @export
 limma_pipeline <- function(
   expression_matrix,
   group_labels,
@@ -37,12 +53,12 @@ limma_pipeline <- function(
   }
 
   # create DGEList object
-  dge <- DGEList(counts=expression_matrix)
+  dge <- edgeR::DGEList(counts=expression_matrix)
 
   # filter lowly expressed genes if this is specified
   if(filter){
     print(">>> Filter out lowly expressed genes", quote=FALSE)
-    keep <- filterByExpr(dge, design)
+    keep <- edgeR::filterByExpr(dge, design)
     print(paste(c(">>>> Number of genes filtered out: ", length(keep[keep == FALSE])), sep="", collapse=""), quote=FALSE)
     print(paste(c(">>>> Number of genes still considerd: ", length(keep[keep == TRUE])), sep="", collapse=""), quote=FALSE)
     dge <- dge[keep,,keep.lib.sizes=FALSE]
@@ -51,7 +67,7 @@ limma_pipeline <- function(
 
   # TODO add possibility to normalize (also plot normalized counts if this option is chosen)
   print(">>> Normalize Counts", quote=FALSE)
-  dge <- calcNormFactors(dge, method=normalize)
+  dge <- edgeR::calcNormFactors(dge, method=normalize)
   if(normalize!="none"){
     # TODO PCA plot after normalization
   }
@@ -62,12 +78,12 @@ limma_pipeline <- function(
     # were very inconsistent between replicates but, otherwise,
     # limma-trend was just as good
     if(limma_voom){
-      vv = limma::voom(expression_matrix,design,plot=TRUE)
+      vv <- limma::voom(expression_matrix,design,plot=TRUE)
       # TODO plot tranformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
     } else if (limma_voom_weight_samples){
-      vv = limma::voomWithQualityWeights(expression_matrix,design,normalization="none",plot=TRUE)
+      vv <- limma::voomWithQualityWeights(expression_matrix,design,normalization="none",plot=TRUE)
       # TODO plot transformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
@@ -82,9 +98,9 @@ limma_pipeline <- function(
     fit2 <- limma::contrasts.fit(fit, contrast_matrix)
     fit2 <- limma::eBayes(fit2,trend=limma_trend)
     
-    cairo_pdf(file=paste(c(output_dir, "Model_plots.pdf"), sep="", collapse=""), width=11.43, height=8.27, onefile=T)
+    grDevices::cairo_pdf(file=paste(c(output_dir, "Model_plots.pdf"), sep="", collapse=""), width=11.43, height=8.27, onefile=T)
     limma::plotSA(fit2, main="Final model: Mean-variance trend")
-    dump <- dev.off()
+    dump <- grDevices::dev.off()
 
   } else {
     fit <- limma::lmFit(expression_matrix,design)
@@ -93,6 +109,8 @@ limma_pipeline <- function(
 
   print(">>> Evaluate results", quote=FALSE)
   limma_res <- list()
+
+  # TODO: this but without using a for loop
   for(i in seq_len(ncol(fit2$coefficients)-skip_I)){
 
     i <- i + skip_I
@@ -121,8 +139,8 @@ limma_pipeline <- function(
     contrast_name_pval <- paste0(contrast_name,"_Pval")
     contrast_name_de <- paste0(contrast_name,"_DE")
     
-    limma_res[[contrast_name_fc]]<-aux[,"logFC"]
-    limma_res[[contrast_name_pval]]<-aux[,"adj.P.Val"]
+    limma_res[[contrast_name_fc]] <- aux[,"logFC"]
+    limma_res[[contrast_name_pval]] <- aux[,"adj.P.Val"]
 
     # -1, 0 or 1 depending on whether each t-statistic is classified as
     # significantly negative, not significant or significantly positive, respectively
@@ -130,14 +148,14 @@ limma_pipeline <- function(
 
     # ID col only appears in the case of duplicated rownames in fit
     if("ID" %in% colnames(aux)){
-      limma_res[["Gene_Symbol"]] = aux[,"ID"]
+      limma_res[["Gene_Symbol"]] <- aux[,"ID"]
     } else {
-      limma_res[["Gene_Symbol"]] = rownames(aux)
+      limma_res[["Gene_Symbol"]] <- rownames(aux)
     }
     
     if(include_unadj_pval){
       contrast_name_unadjpval <- paste0(contrast_name,"_unadjPval")
-      limma_res[[contrast_name_unadjpval]]<-aux[,"P.Value"]
+      limma_res[[contrast_name_unadjpval]] <- aux[,"P.Value"]
     }
   }
 
