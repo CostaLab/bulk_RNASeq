@@ -66,10 +66,10 @@ limma_pipeline <- function(
   }
 
   # TODO add possibility to normalize (also plot normalized counts if this option is chosen)
-  print(">>> Normalize Counts", quote=FALSE)
-  dge <- edgeR::calcNormFactors(dge, method=normalize)
   if(normalize!="none"){
     # TODO PCA plot after normalization
+    print(">>> Normalize Counts", quote=FALSE)
+    dge <- edgeR::calcNormFactors(dge, method=normalize)
   }
 
   print(">>> Fit model", quote=FALSE)
@@ -78,17 +78,17 @@ limma_pipeline <- function(
     # were very inconsistent between replicates but, otherwise,
     # limma-trend was just as good
     if(limma_voom){
-      vv <- limma::voom(expression_matrix,design,plot=TRUE)
+      vv <- limma::voom(dge,design,plot=TRUE)
       # TODO plot tranformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
     } else if (limma_voom_weight_samples){
-      vv <- limma::voomWithQualityWeights(expression_matrix,design,normalization="none",plot=TRUE)
+      vv <- limma::voomWithQualityWeights(dge,design,normalization="none",plot=TRUE)
       # TODO plot transformed counts
       fit <- limma::lmFit(vv,design)
       limma_trend=FALSE # if using limma-voom don't use limma-trend
     } else {
-      fit <- limma::lmFit(expression_matrix,design)
+      fit <- limma::lmFit(dge,design)
     }
     contrast_matrix <- limma::makeContrasts(
       contrasts=group_contrasts,
@@ -103,7 +103,7 @@ limma_pipeline <- function(
     dump <- grDevices::dev.off()
 
   } else {
-    fit <- limma::lmFit(expression_matrix,design)
+    fit <- limma::lmFit(dge,design)
     fit2 <- limma::eBayes(fit,trend=limma_trend)
   }
 
